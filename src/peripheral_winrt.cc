@@ -94,11 +94,11 @@ void PeripheralWinrt::GetServiceFromDevice(
             .Completed([=](IAsyncOperation<GattDeviceServicesResult> result, auto& status) {
                 if (status == AsyncStatus::Completed)
                 {
-                    auto& services = result.GetResults();
-                    auto& service = services.Services().First();
+                    const auto& services = result.GetResults();
+                    const auto& service = services.Services().First();
                     if (service.HasCurrent())
                     {
-                        GattDeviceService& s = service.Current();
+                        const GattDeviceService& s = service.Current();
                         cachedServices.insert(std::make_pair(serviceUuid, CachedService(s)));
                         callback(s);
                     }
