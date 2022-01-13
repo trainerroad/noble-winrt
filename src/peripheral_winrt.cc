@@ -211,8 +211,8 @@ void PeripheralWinrt::GetDescriptorFromCharacteristic(
         .Completed([=](IAsyncOperation<GattDescriptorsResult> result, auto& status) {
             if (status == AsyncStatus::Completed)
             {
-                auto& descriptors = result.GetResults();
-                auto& descriptor = descriptors.Descriptors().First();
+                const auto& descriptors = result.GetResults();
+                const auto& descriptor = descriptors.Descriptors().First();
                 if (descriptor.HasCurrent())
                 {
                     GattDescriptor d = descriptor.Current();
