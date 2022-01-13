@@ -35,7 +35,7 @@ class CachedService
 {
 public:
     CachedService() = default;
-    CachedService(GattDeviceService& s) : service(s)
+    CachedService(const GattDeviceService& s) : service(s)
     {
     }
 
