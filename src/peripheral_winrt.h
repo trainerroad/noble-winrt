@@ -23,7 +23,7 @@ class CachedCharacteristic
 {
 public:
     CachedCharacteristic() = default;
-    CachedCharacteristic(GattCharacteristic& c) : characteristic(c)
+    CachedCharacteristic(const GattCharacteristic& c) : characteristic(c)
     {
     }
 
