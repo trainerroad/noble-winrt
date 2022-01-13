@@ -45,7 +45,7 @@ void PeripheralWinrt::Update(const int rssiValue, const BluetoothLEAdvertisement
         advertismentType == BluetoothLEAdvertisementType::ConnectableDirected;
 
     manufacturerData.clear();
-    for (auto& ds : advertisment.DataSections())
+    for (const auto& ds : advertisment.DataSections())
     {
         if (ds.DataType() == BluetoothLEAdvertisementDataTypes::TxPowerLevel())
         {
@@ -67,7 +67,7 @@ void PeripheralWinrt::Update(const int rssiValue, const BluetoothLEAdvertisement
     }
 
     serviceUuids.clear();
-    for (auto& uuid : advertisment.ServiceUuids())
+    for (const auto& uuid : advertisment.ServiceUuids())
     {
         serviceUuids.push_back(toStr(uuid));
     }
