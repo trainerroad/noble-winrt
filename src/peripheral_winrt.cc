@@ -144,13 +144,13 @@ void PeripheralWinrt::GetCharacteristicFromService(
         .Completed([=](IAsyncOperation<GattCharacteristicsResult> result, auto& status) {
             if (status == AsyncStatus::Completed)
             {
-                auto& characteristics = result.GetResults();
-                auto& characteristic = characteristics.Characteristics().First();
+                const auto& characteristics = result.GetResults();
+                const auto& characteristic = characteristics.Characteristics().First();
                 if (characteristic.HasCurrent())
                 {
                     winrt::guid serviceUuid = service.Uuid();
                     CachedService& cachedService = cachedServices[serviceUuid];
-                    GattCharacteristic& c = characteristic.Current();
+                    const GattCharacteristic& c = characteristic.Current();
                     cachedService.characterisitics.insert(
                         std::make_pair(c.Uuid(), CachedCharacteristic(c)));
                     callback(c);
