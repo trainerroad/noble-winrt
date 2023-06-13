@@ -2,7 +2,10 @@
 #include "winrt_cpp.h"
 
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Foundation.Collections.h>
+
 using namespace winrt::Windows::Storage::Streams;
+using namespace winrt::Windows::Foundation::Collections;
 
 using winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
 using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristicsResult;
@@ -37,7 +40,9 @@ void PeripheralWinrt::Update(const int rssiValue, const BluetoothLEAdvertisement
     if (!localName.empty())
     {
         name = localName;
-    } else {
+    }
+    else
+    {
         name = "UNKNOWN " + address;
     }
 

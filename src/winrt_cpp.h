@@ -1,5 +1,6 @@
 #pragma once
 
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h>
 
 using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristicProperties;

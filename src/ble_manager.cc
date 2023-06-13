@@ -9,6 +9,8 @@
 #include "winrt_cpp.h"
 
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Foundation.Collections.h>
+
 using winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
 using winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
 using winrt::Windows::Storage::Streams::DataReader;
@@ -24,7 +26,8 @@ template <typename O, typename M, class... Types> auto bind2(O* object, M method
     return std::bind(method, object, std::placeholders::_1, std::placeholders::_2, args...);
 }
 
-#define LOGE(message, ...) printf("WINRT BLE API::BLE MANAGER:: " __FUNCTION__ ": " message "\n", __VA_ARGS__)
+#define LOGE(message, ...) \
+    printf("WINRT BLE API::BLE MANAGER:: " __FUNCTION__ ": " message "\n", __VA_ARGS__)
 
 #define CHECK_DEVICE()                                     \
     if (mDeviceMap.find(uuid) == mDeviceMap.end())         \
@@ -42,17 +45,18 @@ template <typename O, typename M, class... Types> auto bind2(O* object, M method
     }                                                \
     BluetoothLEDevice& _device = *peripheral.device;
 
-template <class T>
-bool CheckResult(T _result)
+template <class T> bool CheckResult(T _result)
 {
     if (!_result)
     {
         LOGE("result is null");
         return false;
-    } else {
+    }
+    else
+    {
         auto _commStatus = _result.Status();
-        auto _protError  = _result.ProtocolError();
-        if (_commStatus != GattCommunicationStatus::Success) 
+        auto _protError = _result.ProtocolError();
+        if (_commStatus != GattCommunicationStatus::Success)
         {
             LOGE("ommunication status: %d", _commStatus);
             LOGE("protocol error: %d", _protError);
@@ -80,10 +84,10 @@ BLEManager::BLEManager(const Napi::Value& receiver, const Napi::Function& callba
     auto onRadio = std::bind(&BLEManager::OnRadio, this, std::placeholders::_1);
     mWatcher.Start(onRadio);
     mAdvertismentWatcher.ScanningMode(BluetoothLEScanningMode::Active);
-    auto onReceived  = bind2(this, &BLEManager::OnScanResult);
+    auto onReceived = bind2(this, &BLEManager::OnScanResult);
     mReceivedRevoker = mAdvertismentWatcher.Received(winrt::auto_revoke, onReceived);
-    auto onStopped   = bind2(this, &BLEManager::OnScanStopped);
-    mStoppedRevoker  = mAdvertismentWatcher.Stopped(winrt::auto_revoke, onStopped);
+    auto onStopped = bind2(this, &BLEManager::OnScanStopped);
+    mStoppedRevoker = mAdvertismentWatcher.Stopped(winrt::auto_revoke, onStopped);
 }
 
 const char* adapterStateToString(AdapterState state)
@@ -186,9 +190,11 @@ bool BLEManager::Connect(const std::string& uuid)
     PeripheralWinrt& peripheral = mDeviceMap[uuid];
     if (!peripheral.device.has_value())
     {
-        auto completed = bind2(this, &BLEManager::OnConnected, uuid);
         BluetoothLEDevice::FromBluetoothAddressAsync(peripheral.bluetoothAddress)
-            .Completed(completed);
+            .Completed(
+                [&](IAsyncOperation<BluetoothLEDevice> const& operation, AsyncStatus status) {
+                    BLEManager::OnConnected(operation, status, uuid);
+                });
     }
     else
     {
@@ -281,9 +287,9 @@ void BLEManager::OnServicesDiscovered(IAsyncOperation<GattDeviceServicesResult> 
 {
     std::vector<std::string> serviceUuids;
     if (status == AsyncStatus::Completed)
-    { 
+    {
         const GattDeviceServicesResult& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             FOR(service, result.Services())
             {
@@ -339,7 +345,7 @@ void BLEManager::OnIncludedServicesDiscovered(IAsyncOperation<GattDeviceServices
     if (status == AsyncStatus::Completed)
     {
         const auto& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             FOR(service, result.Services())
             {
@@ -395,7 +401,7 @@ void BLEManager::OnCharacteristicsDiscovered(IAsyncOperation<GattCharacteristics
     if (status == AsyncStatus::Completed)
     {
         const auto& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             FOR(characteristic, result.Characteristics())
             {
@@ -453,7 +459,7 @@ void BLEManager::OnRead(IAsyncOperation<GattReadResult> asyncOp, AsyncStatus sta
     if (status == AsyncStatus::Completed)
     {
         const GattReadResult& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             const auto& value = result.Value();
             if (value)
@@ -671,7 +677,7 @@ void BLEManager::OnDescriptorsDiscovered(IAsyncOperation<GattDescriptorsResult> 
     if (status == AsyncStatus::Completed)
     {
         const auto& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             FOR(descriptor, result.Descriptors())
             {
@@ -726,7 +732,7 @@ void BLEManager::OnReadValue(IAsyncOperation<GattReadResult> asyncOp, AsyncStatu
     if (status == AsyncStatus::Completed)
     {
         const GattReadResult& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             const auto& value = result.Value();
             if (value)
@@ -815,7 +821,7 @@ void BLEManager::OnReadHandle(IAsyncOperation<GattReadResult> asyncOp, AsyncStat
     if (status == AsyncStatus::Completed)
     {
         const GattReadResult& result = asyncOp.GetResults();
-        if(CheckResult(result))
+        if (CheckResult(result))
         {
             const auto& value = result.Value();
             if (value)

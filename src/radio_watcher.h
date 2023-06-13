@@ -11,6 +11,7 @@
 #include <set>
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Radios.h>
+#include <winrt/Windows.Foundation.h>
 
 using namespace winrt::Windows::Devices::Enumeration;
 
