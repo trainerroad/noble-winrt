@@ -41,10 +41,10 @@ void PeripheralWinrt::Update(const int rssiValue, const BluetoothLEAdvertisement
     {
         name = localName;
     }
-    else
-    {
-        name = "UNKNOWN " + address;
-    }
+    // else
+    // {
+    //     name = "UNKNOWN " + address;
+    // }
 
     connectable = advertismentType == BluetoothLEAdvertisementType::ConnectableUndirected ||
         advertismentType == BluetoothLEAdvertisementType::ConnectableDirected;
@@ -82,6 +82,11 @@ void PeripheralWinrt::Update(const int rssiValue, const BluetoothLEAdvertisement
 
 void PeripheralWinrt::Disconnect()
 {
+    for (const auto& [key, value] : cachedServices)
+    {
+        value.service.Close();
+    }
+
     cachedServices.clear();
     if (device.has_value() && connectionToken)
     {

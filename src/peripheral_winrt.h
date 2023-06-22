@@ -3,6 +3,7 @@
 #include <napi.h>
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Devices.Bluetooth.Advertisement.h>
 
 using namespace winrt::Windows::Devices::Bluetooth::Advertisement;

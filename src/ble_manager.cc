@@ -8,6 +8,8 @@
 #include "ble_manager.h"
 #include "winrt_cpp.h"
 
+#include <iostream>
+
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Foundation.Collections.h>
 
@@ -58,8 +60,7 @@ template <class T> bool CheckResult(T _result)
         auto _protError = _result.ProtocolError();
         if (_commStatus != GattCommunicationStatus::Success)
         {
-            LOGE("ommunication status: %d", _commStatus);
-            LOGE("protocol error: %d", _protError);
+            LOGE("communication status: %d", _commStatus);
             return false;
         }
     }
@@ -88,6 +89,13 @@ BLEManager::BLEManager(const Napi::Value& receiver, const Napi::Function& callba
     mReceivedRevoker = mAdvertismentWatcher.Received(winrt::auto_revoke, onReceived);
     auto onStopped = bind2(this, &BLEManager::OnScanStopped);
     mStoppedRevoker = mAdvertismentWatcher.Stopped(winrt::auto_revoke, onStopped);
+
+    std::cout << "# BLE MGR CTOR" << std::endl;
+}
+
+BLEManager::~BLEManager()
+{
+    std::cout << "# BLE MGR DECONCTOR" << std::endl;
 }
 
 const char* adapterStateToString(AdapterState state)
@@ -144,7 +152,12 @@ void BLEManager::Scan(const std::vector<winrt::guid>& serviceUUIDs, bool allowDu
 void BLEManager::OnScanResult(BluetoothLEAdvertisementWatcher watcher,
                               const BluetoothLEAdvertisementReceivedEventArgs& args)
 {
+    auto ad = args.Advertisement();
+    auto localName = winrt::to_string(ad.LocalName().c_str());
     uint64_t bluetoothAddress = args.BluetoothAddress();
+    // std::cout << "Recv Advertisement"
+    //           << "[" << bluetoothAddress << "] localName: [" << localName << "]" << std::endl;
+
     std::string uuid = formatBluetoothUuid(bluetoothAddress);
     int16_t rssi = args.RawSignalStrengthInDBm();
     auto advertismentType = args.AdvertisementType();
@@ -152,8 +165,7 @@ void BLEManager::OnScanResult(BluetoothLEAdvertisementWatcher watcher,
     if (mDeviceMap.find(uuid) == mDeviceMap.end())
     {
         mAdvertismentMap.insert(uuid);
-        auto peripheral =
-            PeripheralWinrt(bluetoothAddress, advertismentType, rssi, args.Advertisement());
+        auto peripheral = PeripheralWinrt(bluetoothAddress, advertismentType, rssi, ad);
         mEmit.Scan(uuid, rssi, peripheral);
         mDeviceMap.emplace(std::make_pair(uuid, std::move(peripheral)));
     }
@@ -182,32 +194,37 @@ void BLEManager::OnScanStopped(BluetoothLEAdvertisementWatcher watcher,
 
 bool BLEManager::Connect(const std::string& uuid)
 {
+    std::cout << "# Connecting device with uuid: " << uuid << std::endl;
     if (mDeviceMap.find(uuid) == mDeviceMap.end())
     {
+        std::cout << "# Device not found: " << uuid << std::endl;
         mEmit.Connected(uuid, "device not found");
         return false;
     }
     PeripheralWinrt& peripheral = mDeviceMap[uuid];
     if (!peripheral.device.has_value())
     {
+        std::cout << "#### Getting device from address: " << uuid << std::endl;
+
+        auto completed = bind2(this, &BLEManager::OnConnected, uuid);
         BluetoothLEDevice::FromBluetoothAddressAsync(peripheral.bluetoothAddress)
-            .Completed(
-                [&](IAsyncOperation<BluetoothLEDevice> const& operation, AsyncStatus status) {
-                    BLEManager::OnConnected(operation, status, uuid);
-                });
+            .Completed(completed);
     }
     else
     {
+        std::cout << "# Emit connected: " << uuid << std::endl;
         mEmit.Connected(uuid);
     }
     return true;
 }
 
-void BLEManager::OnConnected(IAsyncOperation<BluetoothLEDevice> asyncOp, AsyncStatus& status,
+void BLEManager::OnConnected(IAsyncOperation<BluetoothLEDevice> asyncOp, AsyncStatus status,
                              const std::string uuid)
 {
+    std::cout << "OnConnected: " << (int)status << std::endl;
     if (status == AsyncStatus::Completed)
     {
+        std::cout << "OnConnected, Completed: " << std::endl;
         const BluetoothLEDevice& device = asyncOp.GetResults();
         // device can be null if the connection failed
         if (device)
@@ -222,11 +239,13 @@ void BLEManager::OnConnected(IAsyncOperation<BluetoothLEDevice> asyncOp, AsyncSt
         }
         else
         {
+            std::cout << "OnConnected, could not connect to device: result is null " << std::endl;
             mEmit.Connected(uuid, "could not connect to device: result is null");
         }
     }
     else
     {
+        std::cout << "OnConnected, could not connect to device " << std::endl;
         mEmit.Connected(uuid, "could not connect to device");
     }
 }
@@ -381,7 +400,7 @@ bool BLEManager::DiscoverCharacteristics(const std::string& uuid, const winrt::g
                 std::string serviceId = toStr(serviceUuid);
                 service->GetCharacteristicsAsync(BluetoothCacheMode::Uncached)
                     .Completed(bind2(this, &BLEManager::OnCharacteristicsDiscovered, uuid,
-                                     serviceId, characteristicUUIDs));
+                                     serviceId, serviceUuid, characteristicUUIDs));
             }
             else
             {
@@ -395,6 +414,7 @@ bool BLEManager::DiscoverCharacteristics(const std::string& uuid, const winrt::g
 void BLEManager::OnCharacteristicsDiscovered(IAsyncOperation<GattCharacteristicsResult> asyncOp,
                                              AsyncStatus status, const std::string uuid,
                                              const std::string serviceId,
+                                             const winrt::guid& serviceUuid,
                                              const std::vector<winrt::guid> characteristicUUIDs)
 {
     std::vector<std::pair<std::string, std::vector<std::string>>> characteristicsUuids;
